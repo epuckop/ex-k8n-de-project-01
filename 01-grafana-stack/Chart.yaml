@@ -1,0 +1,11 @@
+apiVersion: v2
+name: grafana-stack
+description: Grafana monitoring stack for local development
+type: application
+version: 1.0.0
+appVersion: "11.3.1"
+
+dependencies:
+  - name: grafana
+    version: "8.7.1"
+    repository: https://grafana.github.io/helm-charts
