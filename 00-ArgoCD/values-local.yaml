@@ -1,0 +1,77 @@
+# Minimal ArgoCD configuration for local development
+
+global:
+  domain: localhost:30080
+
+server:
+  # Disable TLS for local development
+  extraArgs:
+    - --insecure
+  
+  # Use NodePort for permanent local access
+  service:
+    type: NodePort
+    nodePortHttp: 30080
+  
+  # Disable metrics for local setup
+  metrics:
+    enabled: false
+
+# Disable Dex for simplicity
+dex:
+  enabled: false
+
+# Disable notifications for local setup
+notifications:
+  enabled: false
+
+# Use embedded Redis instead of HA Redis
+redis-ha:
+  enabled: false
+
+redis:
+  enabled: true
+
+# Disable ApplicationSet for minimal setup (can be enabled if needed)
+applicationSet:
+  enabled: false
+
+# Simple RBAC configuration
+configs:
+  params:
+    server.insecure: true
+    
+  cm:
+    url: http://localhost:30080
+    admin.enabled: "true"
+    
+  rbac:
+    policy.default: role:admin
+    
+  repositories:
+    # Example: Public GitHub repository
+    my-repo:
+      url: https://github.com/USERNAME/REPOSITORY.git
+      type: git
+      name: my-repo
+    
+    # Example: Private GitHub repository with SSH key
+    # my-private-repo:
+    #   url: git@github.com:USERNAME/PRIVATE-REPO.git
+    #   type: git
+    #   name: my-private-repo
+    #   sshPrivateKeySecret:
+    #     name: my-repo-ssh-key
+    #     key: sshPrivateKey
+    
+    # Example: Private repository with username/password
+    # my-private-repo-https:
+    #   url: https://github.com/USERNAME/PRIVATE-REPO.git
+    #   type: git
+    #   name: my-private-repo-https
+    #   usernameSecret:
+    #     name: my-repo-creds
+    #     key: username
+    #   passwordSecret:
+    #     name: my-repo-creds
+    #     key: password
