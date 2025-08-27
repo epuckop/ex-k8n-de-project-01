@@ -48,19 +48,19 @@ argocd repo add https://grafana.github.io/helm-charts --type helm --name grafana
 argocd repo add https://github.com/epuckop/ex-k8n-de-project-01.git --name ex-k8n-de-project-01
 ```
 
-### Step 4: Create Monitoring Namespace via ArgoCD
+### Step 4: Create Infrastructure Manifests via ArgoCD
 ```bash
-# Create namespace application first - REQUIRED before Grafana
-argocd app create monitoring-namespace \
+# Create infrastructure application first - REQUIRED before Grafana
+argocd app create infrastructure-manifests \
   --repo https://github.com/epuckop/ex-k8n-de-project-01.git \
-  --path 01-manifests/namespace \
+  --path 01-manifests \
   --dest-server https://kubernetes.default.svc \
   --sync-policy automated \
   --auto-prune \
   --self-heal
 
 # Wait for namespace to be created
-argocd app wait monitoring-namespace --health
+argocd app wait infrastructure-manifests --health
 ```
 
 ### Step 5: Create ArgoCD Application for Grafana with Parameters

@@ -1,6 +1,10 @@
-# Infrastructure Manifests - Namespaces
+# Infrastructure Manifests
 
-This directory contains Kubernetes namespace definitions for the monitoring stack.
+This directory contains core Kubernetes infrastructure manifests that should be deployed before applications.
+
+## Current Structure
+
+- `namespace/` - Namespace definitions (monitoring, logging, etc.)
 
 ## Files
 
@@ -26,9 +30,9 @@ The `monitoring` namespace is created for all monitoring-related applications in
 Deploy this namespace via ArgoCD:
 
 ```bash
-argocd app create monitoring-namespace \
+argocd app create infrastructure-manifests \
   --repo https://github.com/epuckop/ex-k8n-de-project-01.git \
-  --path 01-manifests/namespace \
+  --path 01-manifests \
   --dest-server https://kubernetes.default.svc \
   --sync-policy automated \
   --auto-prune \
@@ -37,12 +41,12 @@ argocd app create monitoring-namespace \
 
 ## Dependencies
 
-This namespace should be created **before** any monitoring applications:
+This infrastructure should be created **before** any applications:
 1. `00-ArgoCD` - ArgoCD installation
-2. `01-manifests/namespace` - Monitoring namespace (this)
+2. `01-manifests` - Infrastructure manifests (this)
 3. `02-grafana-stack` - Grafana deployment
 4. `03-prometheus-stack` - Prometheus deployment (future)
-5. Other monitoring applications
+5. Other applications
 
 ## GitOps Benefits
 
