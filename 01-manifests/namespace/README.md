@@ -30,9 +30,9 @@ The `monitoring` namespace is created for all monitoring-related applications in
 Deploy this namespace via ArgoCD:
 
 ```bash
-argocd app create infrastructure-manifests \
+argocd app create infrastructure-manifests-namespace \
   --repo https://github.com/epuckop/ex-k8n-de-project-01.git \
-  --path 01-manifests \
+  --path 01-manifests/namespace \
   --dest-server https://kubernetes.default.svc \
   --sync-policy automated \
   --auto-prune \

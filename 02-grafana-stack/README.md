@@ -51,16 +51,16 @@ argocd repo add https://github.com/epuckop/ex-k8n-de-project-01.git --name ex-k8
 ### Step 4: Create Infrastructure Manifests via ArgoCD
 ```bash
 # Create infrastructure application first - REQUIRED before Grafana
-argocd app create infrastructure-manifests \
+argocd app create infrastructure-manifests-namespace \
   --repo https://github.com/epuckop/ex-k8n-de-project-01.git \
-  --path 01-manifests \
+  --path 01-manifests/namespace \
   --dest-server https://kubernetes.default.svc \
   --sync-policy automated \
   --auto-prune \
   --self-heal
 
 # Wait for namespace to be created
-argocd app wait infrastructure-manifests --health
+argocd app wait infrastructure-manifests-namespace --health
 ```
 
 ### Step 5: Create ArgoCD Application for Grafana with Parameters
