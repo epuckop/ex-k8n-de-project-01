@@ -4,26 +4,47 @@ This directory contains core Kubernetes infrastructure manifests that should be 
 
 ## Current Structure
 
-- `namespace/` - Namespace definitions (monitoring, logging, etc.)
+- `namespace/` - Namespace definitions for all application environments
 
 ## Files
 
-- `namespace.yaml` - Monitoring namespace definition
+- `namespace.yaml` - All namespace definitions (monitoring, frontend, backend)
 
-## Namespace: monitoring
+## Namespaces
 
-The `monitoring` namespace is created for all monitoring-related applications including:
+### monitoring
+Namespace for monitoring-related applications:
 - Grafana
 - Prometheus  
 - AlertManager
 - Other monitoring tools
 
-### Labels:
-- `name: monitoring` - Standard namespace label
-- `purpose: monitoring-stack` - Identifies this as monitoring infrastructure
+**Labels:**
+- `name: monitoring`
+- `purpose: monitoring-stack`
 
-### Annotations:
-- `argocd.argoproj.io/sync-wave: "-1"` - Ensures namespace is created before applications
+### frontend
+Namespace for frontend applications:
+- Flutter web applications
+- Static web content
+- Frontend services
+
+**Labels:**
+- `name: frontend`
+- `purpose: frontend-applications`
+
+### backend  
+Namespace for backend applications:
+- Python APIs
+- Database services
+- Backend microservices
+
+**Labels:**
+- `name: backend`
+- `purpose: backend-applications`
+
+### Common Annotations:
+- `argocd.argoproj.io/sync-wave: "-1"` - Ensures namespaces are created before applications
 
 ## ArgoCD Deployment
 
@@ -43,10 +64,11 @@ argocd app create infrastructure-manifests-namespace \
 
 This infrastructure should be created **before** any applications:
 1. `00-ArgoCD` - ArgoCD installation
-2. `01-manifests` - Infrastructure manifests (this)
-3. `02-grafana-stack` - Grafana deployment
-4. `03-prometheus-stack` - Prometheus deployment (future)
-5. Other applications
+2. `01-manifests` - Infrastructure manifests (this) - Creates all namespaces
+3. `02-grafana-stack` - Grafana deployment (→ monitoring namespace)
+4. `03-prometheus-stack` - Prometheus deployment (→ monitoring namespace)
+5. `04-frontend-app` - Frontend applications (→ frontend namespace)
+6. `05-backend-app` - Backend applications (→ backend namespace)
 
 ## GitOps Benefits
 
