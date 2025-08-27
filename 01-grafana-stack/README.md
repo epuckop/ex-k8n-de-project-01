@@ -1,5 +1,7 @@
 # Grafana Stack Deployment with ArgoCD
 
+> **Note**: This is an example configuration using the repository `https://github.com/epuckop/ex-k8n-de-project-01.git` for demonstration purposes. Replace with your actual repository URL when using in production.
+
 This directory contains Grafana monitoring stack configuration for deployment via ArgoCD using Helm.
 
 ## Prerequisites
@@ -42,15 +44,16 @@ argocd repo add https://grafana.github.io/helm-charts --type helm --name grafana
 
 ### Step 3: Add Your Git Repository to ArgoCD
 ```bash
-# Replace with your actual repository URL
-argocd repo add https://github.com/USERNAME/REPOSITORY.git --name my-project
+# Example with this repository (replace with your own)
+argocd repo add https://github.com/epuckop/ex-k8n-de-project-01.git --name ex-k8n-de-project-01
 ```
 
 ### Step 4: Create Monitoring Namespace via ArgoCD
 ```bash
-# Create namespace application first
+# Create namespace application first (if you have namespace manifests)
+# Skip this step if creating namespace manually: kubectl create namespace monitoring
 argocd app create monitoring-namespace \
-  --repo https://github.com/USERNAME/REPOSITORY.git \
+  --repo https://github.com/epuckop/ex-k8n-de-project-01.git \
   --path manifests/namespace \
   --dest-server https://kubernetes.default.svc \
   --sync-policy automated
@@ -58,9 +61,9 @@ argocd app create monitoring-namespace \
 
 ### Step 5: Create ArgoCD Application for Grafana with Parameters
 ```bash
-# Basic deployment with minimal configuration
+# Basic deployment with minimal configuration (example repository)
 argocd app create grafana-stack \
-  --repo https://github.com/USERNAME/REPOSITORY.git \
+  --repo https://github.com/epuckop/ex-k8n-de-project-01.git \
   --path 01-grafana-stack \
   --dest-server https://kubernetes.default.svc \
   --dest-namespace monitoring \
@@ -73,9 +76,9 @@ argocd app create grafana-stack \
   --auto-prune \
   --self-heal
 
-# Production deployment with additional parameters
+# Production deployment with additional parameters (example repository)
 argocd app create grafana-stack \
-  --repo https://github.com/USERNAME/REPOSITORY.git \
+  --repo https://github.com/epuckop/ex-k8n-de-project-01.git \
   --path 01-grafana-stack \
   --dest-server https://kubernetes.default.svc \
   --dest-namespace monitoring \
