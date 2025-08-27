@@ -50,13 +50,17 @@ argocd repo add https://github.com/epuckop/ex-k8n-de-project-01.git --name ex-k8
 
 ### Step 4: Create Monitoring Namespace via ArgoCD
 ```bash
-# Create namespace application first (if you have namespace manifests)
-# Skip this step if creating namespace manually: kubectl create namespace monitoring
+# Create namespace application first - REQUIRED before Grafana
 argocd app create monitoring-namespace \
   --repo https://github.com/epuckop/ex-k8n-de-project-01.git \
-  --path manifests/namespace \
+  --path 01-manifests/namespace \
   --dest-server https://kubernetes.default.svc \
-  --sync-policy automated
+  --sync-policy automated \
+  --auto-prune \
+  --self-heal
+
+# Wait for namespace to be created
+argocd app wait monitoring-namespace --health
 ```
 
 ### Step 5: Create ArgoCD Application for Grafana with Parameters
@@ -64,7 +68,7 @@ argocd app create monitoring-namespace \
 # Basic deployment with minimal configuration (example repository)
 argocd app create grafana-stack \
   --repo https://github.com/epuckop/ex-k8n-de-project-01.git \
-  --path 01-grafana-stack \
+  --path 02-grafana-stack \
   --dest-server https://kubernetes.default.svc \
   --dest-namespace monitoring \
   --helm-set grafana.adminPassword=YourSecurePassword123 \
@@ -79,7 +83,7 @@ argocd app create grafana-stack \
 # Production deployment with additional parameters (example repository)
 argocd app create grafana-stack \
   --repo https://github.com/epuckop/ex-k8n-de-project-01.git \
-  --path 01-grafana-stack \
+  --path 02-grafana-stack \
   --dest-server https://kubernetes.default.svc \
   --dest-namespace monitoring \
   --helm-set grafana.adminPassword=$GRAFANA_ADMIN_PASSWORD \
