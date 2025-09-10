@@ -129,10 +129,10 @@ The ArgoCD installation includes appropriate RBAC policies:
 Once namespaces are deployed, other ArgoCD applications can reference them:
 
 ```bash
-# Example: Deploy Grafana to monitoring namespace
-argocd app create grafana-stack \
+# Example: Deploy monitoring stack to monitoring namespace
+argocd app create monitoring-stack \
   --repo https://github.com/epuckop/ex-k8n-de-project-01.git \
-  --path 02-grafana-stack \
+  --path 02-monitoring-stack \
   --dest-namespace monitoring \
   --dest-server https://kubernetes.default.svc
 ```
@@ -174,7 +174,7 @@ kubectl logs -n argocd deployment/argocd-application-controller
 This infrastructure must be deployed **before** any applications that require these namespaces:
 
 1. **Deploy First**: `01-manifests/namespace` (this directory)
-2. **Deploy After**: `02-grafana-stack`, future frontend/backend applications
+2. **Deploy After**: `02-monitoring-stack`, future frontend/backend applications
 
 The sync wave ordering ensures proper dependency management when using ArgoCD automated sync.
 
