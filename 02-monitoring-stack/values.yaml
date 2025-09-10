@@ -1,219 +1,103 @@
-# Complete Kubernetes monitoring stack configuration
-# Sensitive values should be set via ArgoCD helm parameters
+# Umbrella chart values for complete monitoring stack
 
-kube-prometheus-stack:
-  # Global configuration
-  fullnameOverride: "monitoring"
-  
-  # Grafana configuration - replaces standalone Grafana
+# Enable/disable components
+secrets:
+  enabled: true
+
+monitoring:
+  enabled: true
+
+# Global values passed to subcharts
+global:
+  # Default namespace (will be overridden by ArgoCD)
+  namespace: monitoring
+
+# Values for secrets subchart
+monitoring-secrets:
   grafana:
-    enabled: true
-    
-    # Admin credentials - SET VIA ARGOCD PARAMETERS
-    # --helm-set kube-prometheus-stack.grafana.adminUser=admin
-    # --helm-set kube-prometheus-stack.grafana.adminPassword=YOUR_SECURE_PASSWORD
-    adminUser: admin
-    # adminPassword: # Set via ArgoCD parameter
-    
-    # Service configuration - CONFIGURABLE VIA PARAMETERS
-    # --helm-set kube-prometheus-stack.grafana.service.type=NodePort
-    # --helm-set kube-prometheus-stack.grafana.service.nodePort=30300
-    service:
-      type: ClusterIP  # Override via parameter for local development
-      port: 80
-      # nodePort: 30300  # Set via parameter when type=NodePort
-    
-    # Persistent storage - CONFIGURABLE VIA PARAMETERS
-    # --helm-set kube-prometheus-stack.grafana.persistence.enabled=true
-    # --helm-set kube-prometheus-stack.grafana.persistence.size=10Gi
-    persistence:
-      enabled: false  # Override via parameter
-      # size: 10Gi    # Set via parameter
-      # storageClassName: standard  # Set via parameter
-    
-    # Resources
-    resources:
-      limits:
-        cpu: 500m
-        memory: 512Mi
-      requests:
-        cpu: 250m
-        memory: 256Mi
-    
-    # Default plugins
-    plugins:
-      - grafana-piechart-panel
-      - grafana-worldmap-panel
-      - grafana-clock-panel
-    
-    # Grafana configuration
-    grafana.ini:
-      server:
-        serve_from_sub_path: false
-      security:
-        allow_embedding: true
-      users:
-        allow_sign_up: false
-        auto_assign_org: true
-        auto_assign_org_role: Viewer
-      auth.anonymous:
-        enabled: false
-    
-    # Import default Kubernetes dashboards
-    defaultDashboardsEnabled: true
-    
-    # Additional dashboards can be configured here
-    dashboardProviders:
-      dashboardproviders.yaml:
-        apiVersion: 1
-        providers:
-        - name: 'default'
-          orgId: 1
-          folder: ''
-          type: file
-          disableDeletion: false
-          editable: true
-          options:
-            path: /var/lib/grafana/dashboards/default
+    admin:
+      user: admin
+      # password: # Set via ArgoCD parameter --helm-set monitoring-secrets.grafana.admin.password=SecurePass123
   
-  # Prometheus configuration
-  prometheus:
-    enabled: true
-    
-    service:
-      type: ClusterIP
-      port: 9090
-      # For local access, set via parameter:
-      # --helm-set kube-prometheus-stack.prometheus.service.type=NodePort
-      # --helm-set kube-prometheus-stack.prometheus.service.nodePort=30090
-    
-    prometheusSpec:
-      # Data retention
-      retention: 30d
-      retentionSize: 45GB
-      
-      # Resources
-      resources:
-        limits:
-          cpu: 1000m
-          memory: 2Gi
-        requests:
-          cpu: 500m
-          memory: 1Gi
-      
-      # Storage - CONFIGURABLE VIA PARAMETERS
-      # --helm-set kube-prometheus-stack.prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.resources.requests.storage=50Gi
-      # storageSpec:
-      #   volumeClaimTemplate:
-      #     spec:
-      #       storageClassName: standard
-      #       accessModes: ["ReadWriteOnce"]
-      #       resources:
-      #         requests:
-      #           storage: 50Gi
-      
-      # Service discovery configuration
-      serviceMonitorSelectorNilUsesHelmValues: false
-      podMonitorSelectorNilUsesHelmValues: false
-      ruleSelectorNilUsesHelmValues: false
-      
-      # External labels for federation (if needed)
-      externalLabels:
-        cluster: "local-k8s"
-        region: "local"
+  storage:
+    grafana:
+      size: "10Gi"
+    prometheus: 
+      size: "50Gi"
+    alertmanager:
+      size: "10Gi"
   
-  # AlertManager configuration
-  alertmanager:
-    enabled: true
-    
-    service:
-      type: ClusterIP
-      port: 9093
-      # For local access, set via parameter:
-      # --helm-set kube-prometheus-stack.alertmanager.service.type=NodePort
-      # --helm-set kube-prometheus-stack.alertmanager.service.nodePort=30093
-    
-    alertmanagerSpec:
-      # Resources
-      resources:
-        limits:
-          cpu: 100m
-          memory: 128Mi
-        requests:
-          cpu: 50m
-          memory: 64Mi
-      
-      # Storage for AlertManager data
-      # --helm-set kube-prometheus-stack.alertmanager.alertmanagerSpec.storage.volumeClaimTemplate.spec.resources.requests.storage=10Gi
-      # storage:
-      #   volumeClaimTemplate:
-      #     spec:
-      #       storageClassName: standard
-      #       accessModes: ["ReadWriteOnce"]
-      #       resources:
-      #         requests:
-      #           storage: 10Gi
-      
-      # Basic configuration - can be extended later
-      config:
-        global:
-          smtp_smarthost: 'localhost:587'
-          smtp_from: 'alertmanager@k8s.local'
-        route:
-          group_by: ['alertname']
-          group_wait: 10s
-          group_interval: 10s
-          repeat_interval: 1h
-          receiver: 'web.hook'
-        receivers:
-        - name: 'web.hook'
-          # webhook_configs:
-          # - url: 'http://127.0.0.1:5001/'
+  retention:
+    prometheus: "30d"
+    alertmanager: "120h"
   
-  # Node Exporter - system metrics from nodes
-  nodeExporter:
-    enabled: true
+  service:
+    type: "ClusterIP"  # Change to NodePort via parameter for local development
+    grafana:
+      nodePort: 30300
+    prometheus:
+      nodePort: 30090
+    alertmanager:
+      nodePort: 30093
+
+# Values for monitoring subchart (kube-prometheus-stack)
+monitoring-stack:
+  kube-prometheus-stack:
+    fullnameOverride: "monitoring"
     
-    # Resources
-    resources:
-      limits:
-        cpu: 100m
-        memory: 128Mi
-      requests:
-        cpu: 50m
-        memory: 64Mi
-  
-  # Kube State Metrics - Kubernetes object state
-  kubeStateMetrics:
-    enabled: true
-    
-    # Resources
-    resources:
-      limits:
-        cpu: 100m
-        memory: 128Mi
-      requests:
-        cpu: 50m
-        memory: 64Mi
-  
-  # Prometheus Operator
-  prometheusOperator:
-    enabled: true
-    
-    # Resources
-    resources:
-      limits:
-        cpu: 200m
-        memory: 200Mi
-      requests:
-        cpu: 100m
-        memory: 100Mi
-    
-    # Admission webhook resources
-    admissionWebhooks:
+    grafana:
       enabled: true
-      patch:
+      admin:
+        existingSecret: "monitoring-secrets"
+        userKey: "grafana-admin-user"
+        passwordKey: "grafana-admin-password"
+      service:
+        type: ClusterIP  # Override via parameter
+        port: 80
+      persistence:
         enabled: true
+        size: 10Gi
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 250m
+          memory: 256Mi
+      plugins:
+        - grafana-piechart-panel
+        - grafana-worldmap-panel
+        - grafana-clock-panel
+      defaultDashboardsEnabled: true
+    
+    prometheus:
+      enabled: true
+      service:
+        type: ClusterIP
+        port: 9090
+      prometheusSpec:
+        retention: 30d
+        retentionSize: 45GB
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 2Gi
+          requests:
+            cpu: 500m
+            memory: 1Gi
+        serviceMonitorSelectorNilUsesHelmValues: false
+        podMonitorSelectorNilUsesHelmValues: false
+        ruleSelectorNilUsesHelmValues: false
+        externalLabels:
+          cluster: "local-k8s"
+          region: "local"
+    
+    alertmanager:
+      enabled: true
+      service:
+        type: ClusterIP
+        port: 9093
+      alertmanagerSpec:
         resources:
           limits:
             cpu: 100m
@@ -221,34 +105,86 @@ kube-prometheus-stack:
           requests:
             cpu: 50m
             memory: 64Mi
-  
-  # Default rules and alerts
-  defaultRules:
-    create: true
-    rules:
-      alertmanager: true
-      etcd: true
-      configReloaders: true
-      general: true
-      k8s: true
-      kubeApiserverAvailability: true
-      kubeApiserverBurnrate: true
-      kubeApiserverHistogram: true
-      kubeApiserverSlos: true
-      kubelet: true
-      kubeProxy: true
-      kubePrometheusGeneral: true
-      kubePrometheusNodeRecording: true
-      kubernetesApps: true
-      kubernetesResources: true
-      kubernetesStorage: true
-      kubernetesSystem: true
-      kubeSchedulerAlerting: true
-      kubeSchedulerRecording: true
-      kubeStateMetrics: true
-      network: true
-      node: true
-      nodeExporterAlerting: true
-      nodeExporterRecording: true
-      prometheus: true
-      prometheusOperator: true
+        config:
+          global:
+            smtp_smarthost: 'localhost:587'
+            smtp_from: 'alertmanager@k8s.local'
+          route:
+            group_by: ['alertname']
+            group_wait: 10s
+            group_interval: 10s
+            repeat_interval: 1h
+            receiver: 'web.hook'
+          receivers:
+          - name: 'web.hook'
+    
+    nodeExporter:
+      enabled: true
+      resources:
+        limits:
+          cpu: 100m
+          memory: 128Mi
+        requests:
+          cpu: 50m
+          memory: 64Mi
+    
+    kubeStateMetrics:
+      enabled: true
+      resources:
+        limits:
+          cpu: 100m
+          memory: 128Mi
+        requests:
+          cpu: 50m
+          memory: 64Mi
+    
+    prometheusOperator:
+      enabled: true
+      resources:
+        limits:
+          cpu: 200m
+          memory: 200Mi
+        requests:
+          cpu: 100m
+          memory: 100Mi
+      admissionWebhooks:
+        enabled: true
+        patch:
+          enabled: true
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
+    
+    defaultRules:
+      create: true
+      rules:
+        alertmanager: true
+        etcd: true
+        configReloaders: true
+        general: true
+        k8s: true
+        kubeApiserverAvailability: true
+        kubeApiserverBurnrate: true
+        kubeApiserverHistogram: true
+        kubeApiserverSlos: true
+        kubelet: true
+        kubeProxy: true
+        kubePrometheusGeneral: true
+        kubePrometheusNodeRecording: true
+        kubernetesApps: true
+        kubernetesResources: true
+        kubernetesStorage: true
+        kubernetesSystem: true
+        kubeSchedulerAlerting: true
+        kubeSchedulerRecording: true
+        kubeStateMetrics: true
+        network: true
+        node: true
+        nodeExporterAlerting: true
+        nodeExporterRecording: true
+        prometheus: true
+        prometheusOperator: true

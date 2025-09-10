@@ -1,6 +1,23 @@
 # Complete Kubernetes Monitoring Stack
 
-This directory contains a comprehensive monitoring solution using the `kube-prometheus-stack` Helm chart, which includes Prometheus, Grafana, AlertManager, and all necessary exporters for complete Kubernetes cluster monitoring.
+This directory contains a comprehensive monitoring solution with proper secrets management and the `kube-prometheus-stack` Helm chart. The solution includes Prometheus, Grafana, AlertManager, and all necessary exporters for complete Kubernetes cluster monitoring.
+
+## Directory Structure
+
+```
+02-monitoring-stack/
+├── Chart.yaml                    # Umbrella chart (optional)
+├── values.yaml                   # Global values
+├── README.md                     # This documentation
+├── secrets/                      # Secrets management subchart
+│   ├── Chart.yaml               # Secrets Helm chart
+│   ├── values.yaml              # Secret parameters
+│   ├── templates/               # Secret and ConfigMap templates
+│   └── README.md                # Secrets documentation
+└── monitoring/                   # Core monitoring stack
+    ├── Chart.yaml               # kube-prometheus-stack dependency
+    └── values.yaml              # Monitoring configuration
+```
 
 ## Prerequisites
 
@@ -30,40 +47,66 @@ This directory contains a comprehensive monitoring solution using the `kube-prom
 
 ## Installation Steps
 
-### Step 1: Login to ArgoCD CLI
 ```bash
-# Login to ArgoCD (see ../00-ArgoCD/README.md for setup)
+# 1. Login to ArgoCD
 argocd login localhost:30080 --insecure
-```
 
-### Step 2: Add Prometheus Community Helm Repository
-```bash
+# 2. Add Helm repository
 argocd repo add https://prometheus-community.github.io/helm-charts --type helm --name prometheus-community
-```
 
-### Step 3: Deploy Infrastructure Dependencies
-```bash
-# Ensure namespaces exist (required first)
+# 3. Ensure infrastructure is deployed
 argocd app get infrastructure-manifests-namespace --refresh
 ```
 
-### Step 4: Deploy Monitoring Stack
+### Step 1: Deploy Secrets Management (FIRST)
 
-#### Local Development Configuration
+**Development Environment (NodePort services):**
+```bash
+argocd app create monitoring-secrets \
+  --repo https://github.com/epuckop/ex-k8n-de-project-01.git \
+  --path 02-monitoring-stack/secrets \
+  --dest-server https://kubernetes.default.svc \
+  --dest-namespace monitoring \
+  --helm-set grafana.admin.password=YourSecurePassword123 \
+  --helm-set service.type=NodePort \
+  --sync-policy automated \
+  --auto-prune \
+  --self-heal
+
+# Wait for secrets to be ready
+argocd app wait monitoring-secrets --health
+```
+
+**Production Environment (ClusterIP services):**
+```bash
+argocd app create monitoring-secrets \
+  --repo https://github.com/epuckop/ex-k8n-de-project-01.git \
+  --path 02-monitoring-stack/secrets \
+  --dest-server https://kubernetes.default.svc \
+  --dest-namespace monitoring \
+  --helm-set grafana.admin.password=$GRAFANA_ADMIN_PASSWORD \
+  --helm-set service.type=ClusterIP \
+  --helm-set storage.prometheus.size=100Gi \
+  --sync-policy automated \
+  --auto-prune \
+  --self-heal
+
+argocd app wait monitoring-secrets --health
+```
+
+### Step 2: Deploy Monitoring Stack (AFTER secrets)
+
+**Development Environment:**
 ```bash
 argocd app create monitoring-stack \
   --repo https://github.com/epuckop/ex-k8n-de-project-01.git \
-  --path 02-monitoring-stack \
+  --path 02-monitoring-stack/monitoring \
   --dest-server https://kubernetes.default.svc \
   --dest-namespace monitoring \
-  --helm-set kube-prometheus-stack.grafana.adminPassword=YourSecurePassword123 \
   --helm-set kube-prometheus-stack.grafana.service.type=NodePort \
   --helm-set kube-prometheus-stack.grafana.service.nodePort=30300 \
-  --helm-set kube-prometheus-stack.grafana.persistence.enabled=true \
-  --helm-set kube-prometheus-stack.grafana.persistence.size=10Gi \
   --helm-set kube-prometheus-stack.prometheus.service.type=NodePort \
   --helm-set kube-prometheus-stack.prometheus.service.nodePort=30090 \
-  --helm-set kube-prometheus-stack.prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.resources.requests.storage=50Gi \
   --helm-set kube-prometheus-stack.alertmanager.service.type=NodePort \
   --helm-set kube-prometheus-stack.alertmanager.service.nodePort=30093 \
   --sync-policy automated \
@@ -71,33 +114,34 @@ argocd app create monitoring-stack \
   --self-heal
 ```
 
-#### Production Configuration
+**Production Environment:**
 ```bash
 argocd app create monitoring-stack \
   --repo https://github.com/epuckop/ex-k8n-de-project-01.git \
-  --path 02-monitoring-stack \
+  --path 02-monitoring-stack/monitoring \
   --dest-server https://kubernetes.default.svc \
   --dest-namespace monitoring \
-  --helm-set kube-prometheus-stack.grafana.adminPassword=$GRAFANA_ADMIN_PASSWORD \
-  --helm-set kube-prometheus-stack.grafana.persistence.enabled=true \
-  --helm-set kube-prometheus-stack.grafana.persistence.size=20Gi \
-  --helm-set kube-prometheus-stack.grafana.persistence.storageClassName=fast-ssd \
-  --helm-set kube-prometheus-stack.prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.resources.requests.storage=100Gi \
-  --helm-set kube-prometheus-stack.prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.storageClassName=fast-ssd \
-  --helm-set kube-prometheus-stack.alertmanager.alertmanagerSpec.storage.volumeClaimTemplate.spec.resources.requests.storage=10Gi \
+  --helm-set kube-prometheus-stack.grafana.service.type=ClusterIP \
+  --helm-set kube-prometheus-stack.prometheus.service.type=ClusterIP \
+  --helm-set kube-prometheus-stack.alertmanager.service.type=ClusterIP \
   --sync-policy automated \
   --auto-prune \
   --self-heal
 ```
 
-### Step 5: Wait for Deployment
-```bash
-# Wait for application to sync and become healthy
-argocd app wait monitoring-stack --health
+### Step 3: Verify Deployment
 
-# Check deployment status
+```bash
+# Check application status
+argocd app list
+argocd app get monitoring-secrets
+argocd app get monitoring-stack
+
+# Check pods
 kubectl get pods -n monitoring
-kubectl get pvc -n monitoring
+
+# Check services  
+kubectl get svc -n monitoring
 ```
 
 ## Access Services
@@ -168,16 +212,24 @@ The stack automatically monitors:
 
 ## Configuration Management
 
-### Required ArgoCD Parameters
-- `kube-prometheus-stack.grafana.adminPassword` - **REQUIRED** - Grafana admin password
+### Secrets Management (via secrets/ subchart)
+**Required Parameters:**
+- `grafana.admin.password` - **REQUIRED** - Grafana admin password
 
-### Storage Parameters
-- `kube-prometheus-stack.grafana.persistence.enabled=true` - Enable Grafana persistence
-- `kube-prometheus-stack.grafana.persistence.size=10Gi` - Grafana storage size
-- `kube-prometheus-stack.prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.resources.requests.storage=50Gi` - Prometheus storage
+**Storage Parameters:**
+- `storage.grafana.size=10Gi` - Grafana persistent volume size  
+- `storage.prometheus.size=50Gi` - Prometheus storage size
+- `storage.alertmanager.size=10Gi` - AlertManager storage size
 
-### Service Access Parameters
-- `kube-prometheus-stack.grafana.service.type=NodePort` - Grafana service type
+**Service Parameters:**
+- `service.type=NodePort|ClusterIP` - Service exposure type
+- `service.grafana.nodePort=30300` - Grafana NodePort
+- `service.prometheus.nodePort=30090` - Prometheus NodePort  
+- `service.alertmanager.nodePort=30093` - AlertManager NodePort
+
+### Monitoring Stack Parameters
+**Service Access (via monitoring/ subchart):**
+- `kube-prometheus-stack.grafana.service.type=NodePort` - Override service type
 - `kube-prometheus-stack.grafana.service.nodePort=30300` - Grafana NodePort
 - `kube-prometheus-stack.prometheus.service.type=NodePort` - Prometheus service type
 - `kube-prometheus-stack.alertmanager.service.type=NodePort` - AlertManager service type
