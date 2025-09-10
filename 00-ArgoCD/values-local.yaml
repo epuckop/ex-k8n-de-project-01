@@ -48,12 +48,12 @@ configs:
   rbac:
     policy.default: role:admin
     
-  repositories:
-    # Example: Public GitHub repository
-    my-repo:
-      url: https://github.com/USERNAME/REPOSITORY.git
-      type: git
-      name: my-repo
+   # repositories:
+   #   # Example: Public GitHub repository
+   #   my-repo:
+   #     url: https://github.com/USERNAME/REPOSITORY.git
+   #     type: git
+   #     name: my-repo
     
     # Example: Private GitHub repository with SSH key
     # my-private-repo:

@@ -7,15 +7,7 @@ This directory contains Grafana monitoring stack configuration for deployment vi
 ## Prerequisites
 
 1. **ArgoCD installed and running**: Follow instructions in `../00-ArgoCD/README.md`
-2. **ArgoCD CLI installed**: 
-   ```bash
-   # macOS
-   brew install argocd
-   
-   # Linux
-   curl -sSL -o argocd-linux-amd64 https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
-   sudo install -m 555 argocd-linux-amd64 /usr/local/bin/argocd
-   ```
+2. **ArgoCD CLI installed**: See `../00-ArgoCD/README.md` for installation instructions
 
 3. **kubectl access**: Configured to access your Kubernetes cluster
 

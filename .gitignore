@@ -218,3 +218,4 @@ temp/
 *.key
 *.crt
 *.csr
+CLAUDE.md
